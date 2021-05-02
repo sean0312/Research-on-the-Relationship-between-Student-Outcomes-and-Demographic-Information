@@ -1,0 +1,100 @@
+Research on the Relationship between Student Outcomes and Demographic Information
+
+* Wrote R code to apply Regular Express to extract data from PDF reports
+* Fitted linear regression model to research on the importance of school academic performance to student outcomes
+* Predicted the high-level of teacher degree and high annual attendance rate contributes more than other vairables  
+
+##############################################RRRRRRRRRRRRRRRRRRRRRRRRRR
+library(pdftools)  
+library(stringr)    
+library(stringi)
+library(readxl)
+library(dplyr)
+library(stringi)
+library(tidyr)
+library(xlsx)
+
+rm(list = ls())
+
+setwd("C:/student roster/subject")
+
+file_list <- list.files( pattern = "*ELA.pdf")
+
+rawdata<-list()
+for(i in 1:length(file_list))
+{
+  rawdata[[i]] <- pdf_text(file_list[i])
+}
+
+file_list
+rawdata
+
+pdf2df <- function(rawdata){
+  
+  GRADE <- substring(str_extract(rawdata, "Spring 2018\r\nGrade:\\s[A-Z]?\\d+"), nchar("Spring 2018\r\nGrade:")+1)
+  SCHOOLCODE <- substring(str_extract(rawdata, "School:\\s\\d+"), nchar("School: ")+1)
+  SCHOOLNAME <- substring(str_extract(rawdata, "School:\\s\\d+.+"), nchar("School: ")+1+nchar(SCHOOLCODE)+1)
+  DISTRICTCODE <- substring(str_extract(rawdata, "School System:\\s\\S+"), nchar("School System: ")+1)
+  DISTRICTNAME <- substring(str_extract(rawdata, "School System:\\s.\\S+.+"), nchar("School System: ")+1+nchar(DISTRICTCODE)+1)
+  LASID <- str_trim(substr(rawdata,regexpr("LASID:", rawdata)+nchar("LASID:"), regexpr("LASID:", rawdata)+ nchar("LASID:")+10))
+  RACE <- substring(str_extract(rawdata, "Race:\\s\\S+"), nchar("Race: ")+3)
+
+  SCH_ADV <-  as.numeric(str_sub(str_trim(substr(rawdata,regexpr("Strong", rawdata)-300, regexpr("Strong", rawdata)-6)), -10, -1))
+  SCH_MAS <- as.numeric(str_trim(substr(rawdata,regexpr("Mastery", rawdata)+nchar("Mastery"), regexpr("Mastery", rawdata)+nchar("Mastery")+50)))
+  SCH_BAS <- as.numeric(str_trim(substr(rawdata,regexpr("Basic", rawdata)+nchar("Basic"), regexpr("Basic", rawdata)+nchar("Basic")+50)))
+  SCH_APP <- as.numeric(str_trim(substr(rawdata,regexpr("Approaching Basic", rawdata)+nchar("Approaching Basic"), regexpr("Approaching Basic", rawdata)+nchar("Approaching Basic")+50)))
+  SCH_UNS <- as.numeric(str_trim(substr(rawdata,regexpr("Unsatisfactory", rawdata)+nchar("Unsatisfactory"), regexpr("Unsatisfactory", rawdata)+nchar("AUnsatisfactory")+50)))
+  
+  STU_AVG <- as.numeric(str_trim(substr(rawdata,regexpr("School Average \\(All Students\\)\r\n", rawdata)+nchar("School Average \\(All Students\\)\r\n"),
+                                        regexpr("School Average \\(All Students\\)\r\n", rawdata)+nchar("School Average \\(All Students\\)\r\n")+300)))
+  
+  RR_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)"), regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+40)))
+  RL_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+40, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+50)))
+  RI_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+50, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+80)))
+  RV_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+80, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+100)))
+  WR_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+100, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+120)))
+  WE_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+120, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+150)))
+  WKL_S <- as.numeric(str_trim(substr(rawdata,regexpr("Strong \\(S\\)", rawdata)+nchar("Strong \\(S\\)")+150, regexpr("Strong \\(S\\)", rawdata)+ nchar("Strong \\(S\\)")+180)))
+  
+  TCH_DEG <- as.numeric(substr(raw_ela,regexpr("Degress", raw_ela)-180, regexpr("Degress", raw_ela)-150))
+  TCH_CERT <- as.numeric(substr(raw_ela,regexpr("Certification Rate", raw_ela)-150, regexpr("Unsatisfactory", raw_ela)-130))
+  TCH_RET <- as.numeric(substr(raw_ela,regexpr("Retention Rate", raw_ela)-130, regexpr("Unsatisfactory", raw_ela)-100))
+  TCH_ATT <- as.numeric(substr(raw_ela,regexpr("Annual Attendance Rate", raw_ela)-100, regexpr("Unsatisfactory", raw_ela)-80))
+  
+  df <- data.frame(
+    
+    GRADE,
+    DISTRICTCODE,
+    DISTRICTNAME,
+    SCHOOLCODE,
+    SCHOOLNAME,LASID,RACE,
+    STU_AVG, SCH_ADV, SCH_MAS, SCH_BAS, SCH_APP, SCH_UNS,
+    RR_S, RL_S, RI_S, RV_S, WR_S, WE_S, WKL_S,
+    TCH_DEG, TCH_CERT, TCH_RET, TCH_ATT
+    
+  )
+  df
+}
+
+ela_sch_v1 <- data.frame()
+for(i in 1:length(file_list))
+{
+  ela_sch_v1 <- rbind(ela_sch_v1,pdf2df(rawdata[[i]]))
+}
+
+ela_sch_v1 <- unique(ela_sch_v1[ , 1:24 ] )
+
+ela_sch_v1_1st_r <-   ela_sch_v1 %>%
+  group_by(GRADE, DISTRICTCODE, SCHOOLCODE, SCHOOLNAME) %>%
+  arrange(GRADE, DISTRICTCODE, SCHOOLCODE, SCHOOLNAME) %>%
+  filter(row_number()==1)
+
+View(ela_sch_v1_1st_r)
+
+rownames(ela_sch_v1_1st_r) <- NULL
+
+write.csv(ela_sch_v1_1st_r, "ela_sch_drc.csv")
+
+model <- lm(STU_AVG ~ GRADE + DISTRICTCODE + SCHOOLCODE + RACE + TCH_DEG + TCH_CERT + TCH_RET + TCH_ATT, data = ela_sch_v1)
+
+summary(model)
