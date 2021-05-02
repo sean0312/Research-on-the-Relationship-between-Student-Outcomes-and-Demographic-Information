@@ -1,10 +1,4 @@
-Research on the Relationship between Student Outcomes and Demographic Information
 
-* Wrote R code to apply Regular Express to extract data from PDF reports
-* Fitted linear regression model to research on the importance of school academic performance to student outcomes
-* Predicted the high-level of teacher degree and high annual attendance rate contributes more than other vairables  
-
-##############################################RRRRRRRRRRRRRRRRRRRRRRRRRR
 library(pdftools)  
 library(stringr)    
 library(stringi)
